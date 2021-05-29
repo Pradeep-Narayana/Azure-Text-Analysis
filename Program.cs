@@ -1,0 +1,97 @@
+﻿using System;
+using System.IO;
+using System.Text;
+using Microsoft.Extensions.Configuration;
+using Azure;
+using Azure.AI.TextAnalytics;
+
+namespace text_analysis
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            try
+            {
+                // Get config settings from AppSettings
+                IConfigurationBuilder builder = new ConfigurationBuilder().AddJsonFile("appsettings.json");
+                IConfigurationRoot configuration = builder.Build();
+                string cogSvcEndpoint = configuration["CognitiveServicesEndpoint"];
+                string cogSvcKey = configuration["CognitiveServiceKey"];
+
+                // Set console encoding to unicode
+                //Console.InputEncoding = Encoding.Unicode;
+                //Console.OutputEncoding = Encoding.Unicode;
+
+                // Create client using endpoint and key
+                AzureKeyCredential credentials = new AzureKeyCredential(cogSvcKey);
+                Uri endpoint = new Uri(cogSvcEndpoint);
+                TextAnalyticsClient CogClient = new TextAnalyticsClient(endpoint, credentials);
+
+
+                // Analyze each text file in the reviews folder
+                var directory = System.IO.Directory.GetParent(@"../../../").FullName;
+                var folderPath = Path.GetFullPath(directory+"./reviews");                
+                DirectoryInfo folder = new DirectoryInfo(folderPath);
+                StreamWriter streamWriter = new StreamWriter(directory + "/Output.txt");
+                foreach (var file in folder.GetFiles("*.txt"))
+                {
+                    // Read the file contents
+                    streamWriter.WriteLine("\n-------------\n" + file.Name);
+                    StreamReader sr = file.OpenText();
+                    var text = sr.ReadToEnd();
+                    sr.Close();
+                    streamWriter.WriteLine("\n" + text);
+
+                    // Get language
+                    DetectedLanguage detectedLanguage = CogClient.DetectLanguage(text);
+                    streamWriter.WriteLine("\nLanguage:" +detectedLanguage.Name);
+
+                    // Get sentiment
+                    DocumentSentiment sentimentAnalysis = CogClient.AnalyzeSentiment(text);
+                    streamWriter.WriteLine($"\nSentiment: {sentimentAnalysis.Sentiment}");
+
+
+                    // Get key phrases
+                    KeyPhraseCollection phrases = CogClient.ExtractKeyPhrases(text);
+                    if (phrases.Count > 0)
+                    {
+                        streamWriter.WriteLine("\nKey Phrases:");
+                        foreach (string phrase in phrases)
+                        {
+                            streamWriter.WriteLine($"\t{phrase}");
+                        }
+                    }
+
+
+                    // Get entities
+                    CategorizedEntityCollection entities = CogClient.RecognizeEntities(text);
+                    if (entities.Count > 0)
+                    {
+                        streamWriter.WriteLine("\nEntities:");
+                        foreach (CategorizedEntity entity in entities)
+                        {
+                            streamWriter.WriteLine($"\t{entity.Text} ({entity.Category})");
+                        }
+                    }
+
+
+                    // Get linked entities
+                    LinkedEntityCollection linkedEntities = CogClient.RecognizeLinkedEntities(text);
+                    if (linkedEntities.Count > 0)
+                    {
+                        streamWriter.WriteLine("\nLinks:");
+                        foreach (LinkedEntity linkedEntity in linkedEntities)
+                        {
+                            streamWriter.WriteLine($"\t{linkedEntity.Name} ({linkedEntity.Url})");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+}
