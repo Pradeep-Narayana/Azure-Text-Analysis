@@ -1,4 +1,4 @@
-This folder contains the project to perform text analysis using Azure Cognitive services.
+Project to perform text analysis using Azure Cognitive services.
 
 The sample reviews from the "reviews" folder are analysed to perform the following :
 
