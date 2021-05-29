@@ -8,4 +8,4 @@ The sample reviews from the "reviews" folder are analysed to perform the followi
 4. Get entities
 5. Get relevant links to entities
 
-Once the analysis is completed, the results are written to the "Output.txt" folder.
+Once the analysis is completed, the results are written to the "Output.txt" file
